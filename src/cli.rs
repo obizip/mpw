@@ -1,5 +1,4 @@
 use crate::gen::{get_password, PassKind};
-use crate::repl::*;
 use clap::{Parser, Subcommand};
 use colored::*;
 use zxcvbn::zxcvbn;
@@ -9,7 +8,7 @@ use PassKind::*;
 #[clap(
     name = "mpw",
     version = "v1.0.0",
-    about = "A simple CLI password generator"
+    about = "This is a simple commandline password-generator."
 )]
 
 pub struct Cli {
@@ -19,12 +18,14 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Generate a password
+    /// Generate password [gen <LENGTH:number=10> <DIST:-d(0|1|2|3)=d0> <INFO:-i | --info>]
     Gen {
-        /// length of a password (>=6)
-        #[clap(default_value = "9")]
-        length: i32,
+        // オプション
+        // パスワードの長さ (>=6)
+        #[clap(default_value = "10")] // defaultは10
+        length: u32,
 
+        // パスワードの種類
         #[clap(
             short,
             long,
@@ -33,26 +34,31 @@ enum Commands {
         )]
         dist: u8,
 
-        /// print password-strength information
-        #[clap(short, long)]
+        // パスワードのスコアに関する情報を表示するか
+        #[clap(short, long, help = "Print information of strength")]
         info: bool,
     },
-    /// Check security level for arg
+    ///  Check strength for input value [check <PASSWORD:String>]
     Check {
-        /// Stuff to evaluate security level
+        // オプション
+        // スコアを知りたいパスワード
         #[clap(value_parser)]
         password: String,
 
-        /// print password-strength information
-        #[clap(short, long)]
+        // パスワードのスコアに関する情報を表示するか
+        #[clap(short, long, help = "Print information of strength")]
         info: bool,
     },
-    Ls,
 }
 
+// パスワードのスコアとその情報を表示
 fn print_password_level(password: &str, info: bool) {
     let estimate = zxcvbn(password, &[]).unwrap();
     let score = estimate.score();
+    let seq = estimate.sequence();
+    println!("{:?}", seq);
+
+    // スコアごとに表示を変更
     let score_with_color = match score {
         0 => "0".red(),
         1 => "1".bright_red(),
@@ -61,8 +67,11 @@ fn print_password_level(password: &str, info: bool) {
         4 => "4".blue(),
         _ => (score as char).to_string().white(),
     };
+
     println!("password: {}", password);
     println!("strength: {}", score_with_color);
+
+    // infoオプションが指定されていればより詳しい情報を表示
     if info == true {
         println!("{} ------------> {}", "weak".red(), "strong".blue());
         println!(
@@ -94,27 +103,32 @@ fn print_password_level(password: &str, info: bool) {
     }
 }
 
-pub fn do_command(args: Cli) {
+pub fn do_command(args: Cli) -> Result<(), String> {
     match args.command {
         Commands::Gen { length, dist, info } => {
-            if length < 5 {
-                panic!("length is too short! [length >= 6]");
+            if length < 3 {
+                return Err("Length is too short! [length >= 4]".to_string());
             }
+            // パスワードの種類ごとに対応する列挙型にマッチさせる
             let kind = match dist {
                 0 => Alphanum,
                 1 => Alphabets,
                 2 => Numbers,
                 3 => All,
-                _ => {
-                    panic!("Unexpected option! [-d(0|1|2|3) default->0]");
+                n => {
+                    return Err(format!(
+                        "Unexpected option: -d{} \n\t[-d(0|1|2|3) default->0]",
+                        n
+                    ));
                 }
             };
             let password = get_password(kind, length);
             print_password_level(&password, info);
         }
+
         Commands::Check { password, info } => {
             print_password_level(&password, info);
         }
-        Commands::Ls => do_repl(),
     }
+    Ok(())
 }

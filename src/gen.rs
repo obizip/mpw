@@ -18,6 +18,7 @@ pub enum CharKind {
     Sign,
 }
 
+// パスワードの種類に対応する文字種のベクタ
 fn get_charkind_vector(passkind: PassKind) -> Vec<CharKind> {
     match passkind {
         Alphanum => vec![Number, Lowercase, Uppercase], // alphabets and numbers
@@ -27,6 +28,7 @@ fn get_charkind_vector(passkind: PassKind) -> Vec<CharKind> {
     }
 }
 
+// 引数で与えられた文字種の中からランダムに１つ返す
 fn get_char_by_charkind(kind: CharKind) -> char {
     let mut rng = thread_rng();
     let ascii: u8 = match kind {
@@ -39,7 +41,11 @@ fn get_char_by_charkind(kind: CharKind) -> char {
     ascii as char
 }
 
-fn put_char_to_password(mut password: String, length: i32, kind: CharKind) -> String {
+// 引数に文字種とその長さ、そしてパスワードの文字列をとり、引数で与えられた長さ分の文字種からのランダムな値をパスワードに追加する。
+fn put_char_to_password(mut password: String, length: u32, kind: CharKind) -> String {
+    if length <= 0 {
+        return password;
+    }
     for _n in 1..=length {
         let c: char = get_char_by_charkind(kind);
         password.push(c);
@@ -48,29 +54,39 @@ fn put_char_to_password(mut password: String, length: i32, kind: CharKind) -> St
     password
 }
 
-pub fn get_password(passkind: PassKind, length: i32) -> String {
+pub fn get_password(passkind: PassKind, length: u32) -> String {
     let mut rng = thread_rng();
     let mut password: String = String::new();
-    let mut len = length;
-    let array: Vec<CharKind> = get_charkind_vector(passkind);
 
-    let mut max: i32;
-    let mut random_number: i32;
-    let cklen = array.len() as i32;
+    let charkind_array: Vec<CharKind> = get_charkind_vector(passkind); // 文字種のベクタ
+    let charkind_len = charkind_array.len(); // 文字種の種類数
 
-    for (i, kind) in array.into_iter().enumerate() {
-        let i = i as i32;
-        max = len - cklen - 1 + i;
-        if cklen == i + 1 {
-            random_number = len;
-        } else {
-            random_number = rng.gen_range(1..=max);
-        }
-        password = put_char_to_password(password, random_number, kind);
-        len -= random_number;
+    // パスワードに各文字種が少なくとも一文字以上にするために、
+    // 初めに各文字種の一文字分パスワードに追加する。
+    for kind in &charkind_array {
+        password = put_char_to_password(password, 1, *kind);
     }
 
+    // 残りのパスワードの文字数を記憶する変数を定義。
+    // 初期値はパスワードの長さからその文字種の種類を引いたものである。
+    let mut remaining_len = length - charkind_len as u32;
+
+    // それぞれの文字種に対して、0以上で残った文字数以下の個数の値をパスワードに追加する。
+    for (i, kind) in charkind_array.into_iter().enumerate() {
+        // iと文字種の種類数が等しい時、つまり繰り返しの最後は残った文字数分追加する。
+        if i + 1 == charkind_len {
+            password = put_char_to_password(password, remaining_len, kind);
+        } else {
+            let random_number = rng.gen_range(0..=remaining_len);
+            remaining_len -= random_number;
+
+            password = put_char_to_password(password, random_number, kind);
+        }
+    }
+
+    // 生成されたパスワードをシャッフルしてよりランダムなものにする
     let mut bytes = password.into_bytes();
     bytes.shuffle(&mut rng);
-    String::from_utf8(bytes).expect("Error in changing bytes to utf8")
+
+    String::from_utf8(bytes).expect("Error: Fail to change bytes to utf8")
 }

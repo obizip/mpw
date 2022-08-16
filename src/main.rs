@@ -1,10 +1,11 @@
 pub mod gen;
-pub mod repl;
 use clap::Parser;
 mod cli;
 use cli::*;
 
 fn main() {
     let args = Cli::parse();
-    do_command(args);
+    if let Err(e) = do_command(args) {
+        println!("Error: {}", e);
+    }
 }

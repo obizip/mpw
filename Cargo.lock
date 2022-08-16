@@ -293,6 +293,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
+name = "mpw"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "colored",
+ "rand",
+ "zxcvbn",
+]
+
+[[package]]
 name = "num_threads"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -312,16 +322,6 @@ name = "os_str_bytes"
 version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "648001efe5d5c0102d8cea768e348da85d90af8ba91f0bea908f157951493cd4"
-
-[[package]]
-name = "pass"
-version = "0.1.0"
-dependencies = [
- "clap",
- "colored",
- "rand",
- "zxcvbn",
-]
 
 [[package]]
 name = "ppv-lite86"
